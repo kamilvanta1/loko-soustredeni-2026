@@ -62,11 +62,19 @@ function persist(){
 }
 
 function addPerson(){
- let n=name.value.trim();
+ let n = document.getElementById('name').value.trim();
+ let r = document.getElementById('role').value;
+
  if(!n) return;
- db.people.push({name:n,role:role.value});
+
+ db.people.push({
+   name: n,
+   role: r
+ });
+
+ document.getElementById('name').value = '';
+
  persist();
- name.value='';
 }
 
 function removePerson(i){
@@ -74,18 +82,13 @@ function removePerson(i){
  persist();
 }
 
-function saveResult(){
- db.results.push({
-  day:+day.value,
-  person:person.value,
-  shoot:+(shoot.value||0),
-  run:run.value?+run.value:null,
-  slalom:slalom.value?+slalom.value:null,
-  shots:+(shots.value||0),
-  saves:+(saves.value||0)
- });
- persist();
-}
+day:+document.getElementById('day').value,
+person:document.getElementById('person').value,
+shoot:+(document.getElementById('shoot').value||0),
+run:document.getElementById('run').value ? +document.getElementById('run').value : null,
+slalom:document.getElementById('slalom').value ? +document.getElementById('slalom').value : null,
+shots:+(document.getElementById('shots').value||0),
+saves:+(document.getElementById('saves').value||0)
 
 function avg(arr){
  if(!arr.length) return null;
@@ -93,7 +96,7 @@ function avg(arr){
 }
 
 function render(){
- people.innerHTML="<ul>"+db.people.map((p,i)=>`<li>${p.name} (${p.role=="goalie"?"Gólman":"Hráč"}) <button onclick="removePerson(${i})">Smazat</button></li>`).join("")+"</ul>";
+ document.getElementById('people').innerHTML=
 
  person.innerHTML=db.people.map(p=>`<option>${p.name}</option>`).join("");
 
@@ -121,7 +124,7 @@ function render(){
    return {name:p.name,val:sh?sv*100/sh:0};
  }).sort((a,b)=>b.val-a.val);
 
- rankings.innerHTML=`
+ document.getElementById('rankings').innerHTML=
  <h3>🎯 Střelba</h3>${table(shooting,' bodů')}
  <h3>🏃 Běh 60 m (průměr)</h3>${table(runs,' s')}
  <h3>🏑 Slalom (průměr)</h3>${table(slaloms,' s')}
