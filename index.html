@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TJ Lokomotiva Louny – Soustředění</title>
+<style>
+body{margin:0;font-family:Arial;background:#111;color:#fff}
+header{background:#d1007a;padding:12px;font-size:24px;font-weight:bold}
+.container{padding:12px}
+.card{background:#222;margin:10px 0;padding:12px;border-radius:10px}
+input,select,button{padding:8px;margin:4px}
+button{background:#d1007a;color:#fff;border:none;border-radius:6px}
+table{width:100%;border-collapse:collapse}
+td,th{border:1px solid #444;padding:6px}
+h2{color:#ff4fb0}
+</style>
+</head>
+<body>
+<header>🏒 TJ Lokomotiva Louny – Florbalové soustředění</header>
+<div class="container">
+
+<div class="card">
+<h2>Nastavení</h2>
+Začátek <input type="date" id="start">
+Konec <input type="date" id="end">
+</div>
+
+<div class="card">
+<h2>Účastníci</h2>
+<input id="name" placeholder="Jméno">
+<select id="role"><option value="player">Hráč</option><option value="goalie">Gólman</option></select>
+<button onclick="addPerson()">Přidat</button>
+<div id="people"></div>
+</div>
+
+<div class="card">
+<h2>Zápis výsledků</h2>
+Den <input type="number" id="day" value="1" min="1">
+<select id="person"></select><br>
+Střelba (góly) <input type="number" id="shoot" min="0" max="10"><br>
+Běh 60m (s) <input type="number" step="0.01" id="run"><br>
+Slalom (s) <input type="number" step="0.01" id="slalom"><br>
+Střely na gólmana <input type="number" id="shots"><br>
+Zákroky gólmana <input type="number" id="saves"><br>
+<button onclick="saveResult()">Uložit výsledek</button>
+</div>
+
+<div class="card">
+<h2>Pořadí</h2>
+<div id="rankings"></div>
+</div>
+
+</div>
+
+<script>
+let db=JSON.parse(localStorage.getItem("loko_db")||'{"people":[],"results":[]}')
+
+function persist(){
+ localStorage.setItem("loko_db",JSON.stringify(db));
+ render();
+}
+
+function addPerson(){
+ let n=name.value.trim();
+ if(!n) return;
+ db.people.push({name:n,role:role.value});
+ persist();
+ name.value='';
+}
+
+function removePerson(i){
+ db.people.splice(i,1);
+ persist();
+}
+
+function saveResult(){
+ db.results.push({
+  day:+day.value,
+  person:person.value,
+  shoot:+(shoot.value||0),
+  run:run.value?+run.value:null,
+  slalom:slalom.value?+slalom.value:null,
+  shots:+(shots.value||0),
+  saves:+(saves.value||0)
+ });
+ persist();
+}
+
+function avg(arr){
+ if(!arr.length) return null;
+ return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+
+function render(){
+ people.innerHTML="<ul>"+db.people.map((p,i)=>`<li>${p.name} (${p.role=="goalie"?"Gólman":"Hráč"}) <button onclick="removePerson(${i})">Smazat</button></li>`).join("")+"</ul>";
+
+ person.innerHTML=db.people.map(p=>`<option>${p.name}</option>`).join("");
+
+ let players=db.people.filter(p=>p.role=="player");
+
+ let shooting=players.map(p=>({
+   name:p.name,
+   val:db.results.filter(r=>r.person==p.name).reduce((s,r)=>s+r.shoot,0)
+ })).sort((a,b)=>b.val-a.val);
+
+ let runs=players.map(p=>{
+   let arr=db.results.filter(r=>r.person==p.name && r.run!=null).map(r=>r.run);
+   return {name:p.name,val:avg(arr)};
+ }).filter(x=>x.val!=null).sort((a,b)=>a.val-b.val);
+
+ let slaloms=players.map(p=>{
+   let arr=db.results.filter(r=>r.person==p.name && r.slalom!=null).map(r=>r.slalom);
+   return {name:p.name,val:avg(arr)};
+ }).filter(x=>x.val!=null).sort((a,b)=>a.val-b.val);
+
+ let goalies=db.people.filter(p=>p.role=="goalie").map(p=>{
+   let rs=db.results.filter(r=>r.person==p.name);
+   let sh=rs.reduce((a,b)=>a+b.shots,0);
+   let sv=rs.reduce((a,b)=>a+b.saves,0);
+   return {name:p.name,val:sh?sv*100/sh:0};
+ }).sort((a,b)=>b.val-a.val);
+
+ rankings.innerHTML=`
+ <h3>🎯 Střelba</h3>${table(shooting,' bodů')}
+ <h3>🏃 Běh 60 m (průměr)</h3>${table(runs,' s')}
+ <h3>🏑 Slalom (průměr)</h3>${table(slaloms,' s')}
+ <h3>🥅 Gólmani (úspěšnost)</h3>${table(goalies,' %')}
+ `;
+}
+
+function table(data,suf){
+ return `<table><tr><th>Pořadí</th><th>Jméno</th><th>Výsledek</th></tr>`+
+ data.map((x,i)=>`<tr><td>${i==0?'🥇':i==1?'🥈':i==2?'🥉':i+1}</td><td>${x.name}</td><td>${typeof x.val==='number'?x.val.toFixed(2):x.val}${suf}</td></tr>`).join('')
+ +`</table>`;
+}
+
+render();
+</script>
+</body>
+</html>
